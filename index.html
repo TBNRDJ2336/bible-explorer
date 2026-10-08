@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bible Explorer: the 66 books in 3D</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#05060d;--ink:#f3ead3;--mut:#a9a38f;--gold:#e8c26a;--glass:rgba(10,12,26,.66);--line:rgba(232,194,106,.28);
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#05060d;--ink:#f3ead3;--mut:#a9a38f;--glass:rgba(10,12,26,.66)}}
+:root[data-theme="dark"]{--bg:#05060d;--ink:#f3ead3;--mut:#a9a38f;--glass:rgba(10,12,26,.66)}
+html{height:100%;background:var(--bg);scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;height:100%;position:relative;overflow:hidden;background:var(--bg);color:var(--ink);font:500 18px/1.45 'Cormorant Garamond',Georgia,serif}
+#c{position:absolute;inset:0}
+#c canvas{display:block;width:100%;height:100%;cursor:grab;touch-action:none}
+#c canvas.dr{cursor:grabbing}
+.glass{background:var(--glass);border:1px solid var(--line);border-radius:14px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+#top{position:absolute;left:16px;right:16px;top:14px;display:flex;flex-wrap:wrap;gap:12px 20px;align-items:flex-start;justify-content:space-between;pointer-events:none}
+#top>*{pointer-events:auto}
+h1{margin:0;font:700 clamp(22px,3.4vw,34px)/1.05 'Cinzel',Georgia,serif;letter-spacing:.04em;color:var(--gold);text-shadow:0 0 28px rgba(232,194,106,.45)}
+.sub{margin:4px 0 0;color:var(--mut);font-size:17px}
+#q{width:min(260px,100%);padding:9px 14px;border-radius:999px;border:1px solid var(--line);background:var(--glass);color:var(--ink);font:inherit;outline:none;backdrop-filter:blur(14px)}
+#q:focus-visible,button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+#chips{position:absolute;left:16px;right:16px;top:88px;display:flex;gap:7px;flex-wrap:wrap;max-width:760px}
+.chip{display:flex;align-items:center;gap:7px;padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--glass);color:var(--ink);font:inherit;font-size:16px;cursor:pointer;backdrop-filter:blur(10px)}
+.chip i{width:10px;height:10px;border-radius:50%;box-shadow:0 0 10px currentColor}
+.chip.on{border-color:var(--gold);background:rgba(232,194,106,.18)}
+#panel{position:absolute;right:16px;top:50%;transform:translateY(-50%);width:330px;max-height:70%;overflow:auto;padding:20px 22px}
+#panel h2{margin:2px 0 6px;font:700 30px/1.1 'Cinzel',Georgia,serif;color:var(--gold)}
+#panel p{margin:8px 0}
+.k{color:var(--mut);font-size:16px}
+.big{display:flex;gap:18px;margin:12px 0}
+.big b{display:block;font:700 28px/1 'Cinzel',Georgia,serif;color:var(--ink)}
+.big span{font-size:15px;color:var(--mut)}
+.bar{height:6px;border-radius:3px;background:rgba(255,255,255,.1);margin:6px 0 14px;overflow:hidden}
+.bar div{height:100%;border-radius:3px;transition:width .6s}
+.nav{display:flex;gap:8px;margin-top:14px}
+.btn{flex:1;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(232,194,106,.1);color:var(--ink);font:inherit;cursor:pointer}
+.btn:hover{background:rgba(232,194,106,.22)}
+.q{font-style:italic;border-left:2px solid var(--gold);padding-left:12px;margin:14px 0 4px}
+#x{float:right;border:0;background:none;color:var(--mut);font-size:22px;cursor:pointer}
+#verse{position:absolute;left:16px;bottom:18px;width:min(430px,calc(100% - 32px));padding:14px 18px;cursor:pointer;transition:opacity .5s}
+#verse em{display:block;font-size:19px}
+#verse small{color:var(--gold);font-size:16px}
+#hint{position:absolute;right:20px;bottom:14px;color:var(--mut);font-size:15px;text-align:right}
+#tip{position:absolute;pointer-events:none;padding:4px 10px;border-radius:8px;background:rgba(5,6,13,.85);border:1px solid var(--line);font-size:16px;opacity:0;transition:opacity .15s;white-space:nowrap}
+@media (max-width:720px){
+ #chips{top:112px;flex-wrap:nowrap;overflow-x:auto;right:0;padding-right:16px;scrollbar-width:none}
+ .chip{flex:none}
+ #panel{top:auto;bottom:12px;left:12px;right:12px;width:auto;transform:none;max-height:36%;padding:14px 16px}
+ #verse,#hint{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="c"></div>
+<div id="top">
+ <div><h1>Bible Explorer</h1><p class="sub">Sixty-six books in one turning galaxy. Drag, zoom, and tap any book.</p></div>
+ <input id="q" list="bl" placeholder="Find a book, like Psalms" aria-label="Find a book">
+ <datalist id="bl"></datalist>
+</div>
+<div id="chips" role="group" aria-label="Filter by section"></div>
+<aside id="panel" class="glass" aria-live="polite">
+ <div id="intro">
+  <h2>The whole library</h2>
+  <p>Each glowing book is sized by its number of chapters. The older arm of the spiral is the Old Testament; the second arm is the New. Tap any book to read a verse from it.</p>
+  <div class="big"><div><b>66</b><span>books</span></div><div><b>929</b><span>Old Testament chapters</span></div><div><b>260</b><span>New Testament chapters</span></div></div>
+  <p class="k">Choose a section above to light up its books.</p>
+ </div>
+ <div id="bk" hidden>
+  <button id="x" aria-label="Close book">&times;</button>
+  <div class="k" id="bm"></div><h2 id="bn"></h2>
+  <p id="bt"></p>
+  <div class="k" id="bc"></div><div class="bar"><div id="bb"></div></div>
+  <div id="bq"></div>
+  <div class="nav"><button class="btn" id="pv">Previous book</button><button class="btn" id="nx">Next book</button></div>
+ </div>
+</aside>
+<div id="verse" class="glass" title="Open this book"></div>
+<div id="hint">Drag to orbit, scroll or pinch to zoom,<br>arrow keys to step through books</div>
+<div id="tip"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const C=[["Law","#f2c14e","Old Testament"],["History","#ef7f5f","Old Testament"],["Poetry and wisdom","#a99cff","Old Testament"],["Major prophets","#4fc3f7","Old Testament"],["Minor prophets","#5eead4","Old Testament"],["Gospels","#ffd9a0","New Testament"],["Acts","#ff9ec7","New Testament"],["Paul's letters","#8bdc7a","New Testament"],["General letters","#7ab8ff","New Testament"],["Prophecy","#ff6b6b","New Testament"]];
+const B=[
+["Genesis",50,0,"Creation, the fall, and the family of promise"],["Exodus",40,0,"Rescue from Egypt, the law, and the tabernacle"],["Leviticus",27,0,"Holiness, sacrifice, and worship"],["Numbers",36,0,"Wilderness wandering and a census of Israel"],["Deuteronomy",34,0,"Moses' farewell speeches and covenant renewal"],
+["Joshua",24,1,"Conquest and settlement of Canaan"],["Judges",21,1,"Cycles of failure and rescue"],["Ruth",4,1,"Loyalty and redemption in a foreign field"],["1 Samuel",31,1,"Samuel, Saul, and the rise of David"],["2 Samuel",24,1,"David's reign, triumph, and failure"],["1 Kings",22,1,"Solomon's temple and the divided kingdom"],["2 Kings",25,1,"Decline and exile of Israel and Judah"],["1 Chronicles",29,1,"David's line and plans for the temple"],["2 Chronicles",36,1,"Judah's kings from Solomon to exile"],["Ezra",10,1,"Return from exile and rebuilding the temple"],["Nehemiah",13,1,"Rebuilding Jerusalem's walls"],["Esther",10,1,"A hidden providence saves a people"],
+["Job",42,2,"Suffering, doubt, and God's answer"],["Psalms",150,2,"Songs of praise, lament, and trust"],["Proverbs",31,2,"Practical wisdom for daily living"],["Ecclesiastes",12,2,"The search for meaning under the sun"],["Song of Solomon",8,2,"Poetry celebrating love"],
+["Isaiah",66,3,"Judgment, comfort, and the coming Servant"],["Jeremiah",52,3,"The weeping prophet and a new covenant"],["Lamentations",5,3,"Grief over Jerusalem's fall"],["Ezekiel",48,3,"Visions of judgment and restoration"],["Daniel",12,3,"Faith in exile and visions of kingdoms"],
+["Hosea",14,4,"God's faithful love for an unfaithful people"],["Joel",3,4,"Locusts, repentance, and the day of the LORD"],["Amos",9,4,"A cry for justice for the poor"],["Obadiah",1,4,"Judgment on Edom"],["Jonah",4,4,"A reluctant prophet and God's mercy"],["Micah",7,4,"Justice, mercy, and a coming ruler"],["Nahum",3,4,"The fall of Nineveh"],["Habakkuk",3,4,"Questions and faith amid injustice"],["Zephaniah",3,4,"Judgment and a joyful remnant"],["Haggai",2,4,"A call to rebuild the temple"],["Zechariah",14,4,"Night visions and a coming king"],["Malachi",4,4,"A final call to faithfulness"],
+["Matthew",28,5,"Jesus as promised King and teacher"],["Mark",16,5,"A fast-paced story of Jesus the Servant"],["Luke",24,5,"Jesus for all people, told with compassion"],["John",21,5,"Jesus as the Son of God, full of signs"],
+["Acts",28,6,"The church's birth and spread to the nations"],
+["Romans",16,7,"Righteousness by faith, explained"],["1 Corinthians",16,7,"Love, order, and resurrection in a divided church"],["2 Corinthians",13,7,"Ministry, weakness, and generosity"],["Galatians",6,7,"Freedom in Christ, not the law"],["Ephesians",6,7,"One body in Christ and the armor of God"],["Philippians",4,7,"Joy in every circumstance"],["Colossians",4,7,"The supremacy of Christ"],["1 Thessalonians",5,7,"Hope in Christ's return"],["2 Thessalonians",3,7,"Steadiness while waiting"],["1 Timothy",6,7,"Guidance for leading a church"],["2 Timothy",4,7,"Paul's last words and charge to endure"],["Titus",3,7,"Good works and sound teaching"],["Philemon",1,7,"Forgiveness for a runaway servant"],
+["Hebrews",13,8,"Christ greater than angels, Moses, and priests"],["James",5,8,"Faith shown by action"],["1 Peter",5,8,"Hope and holiness under suffering"],["2 Peter",3,8,"A warning against false teachers"],["1 John",5,8,"Love, truth, and assurance"],["2 John",1,8,"Walk in truth and love"],["3 John",1,8,"Hospitality for faithful workers"],["Jude",1,8,"Contend for the faith"],
+["Revelation",22,9,"Visions of final victory and a new creation"]];
+const V=[["Genesis 1:1","In the beginning God created the heaven and the earth.","Genesis"],["Psalm 23:1","The LORD is my shepherd; I shall not want.","Psalms"],["Proverbs 3:5","Trust in the LORD with all thine heart; and lean not unto thine own understanding.","Proverbs"],["Isaiah 40:31","But they that wait upon the LORD shall renew their strength; they shall mount up with wings as eagles.","Isaiah"],["John 3:16","For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.","John"],["Joshua 1:9","Be strong and of a good courage; be not afraid, neither be thou dismayed: for the LORD thy God is with thee whithersoever thou goest.","Joshua"],["Romans 8:28","And we know that all things work together for good to them that love God, to them who are the called according to his purpose.","Romans"],["Philippians 4:13","I can do all things through Christ which strengtheneth me.","Philippians"]];
+V.push(
+["Psalm 119:105","Thy word is a lamp unto my feet, and a light unto my path.","Psalms"],
+["Exodus 14:14","The LORD shall fight for you, and ye shall hold your peace.","Exodus"],
+["Leviticus 19:2","Ye shall be holy: for I the LORD your God am holy.","Leviticus"],
+["Numbers 6:24-26","The LORD bless thee, and keep thee: the LORD make his face shine upon thee, and be gracious unto thee: the LORD lift up his countenance upon thee, and give thee peace.","Numbers"],
+["Deuteronomy 6:5","And thou shalt love the LORD thy God with all thine heart, and with all thy soul, and with all thy might.","Deuteronomy"],
+["Judges 21:25","In those days there was no king in Israel: every man did that which was right in his own eyes.","Judges"],
+["Ruth 1:16","Intreat me not to leave thee, or to return from following after thee: for whither thou goest, I will go; and where thou lodgest, I will lodge: thy people shall be my people, and thy God my God.","Ruth"],
+["1 Samuel 16:7","For the LORD seeth not as man seeth; for man looketh on the outward appearance, but the LORD looketh on the heart.","1 Samuel"],
+["2 Samuel 7:16","And thine house and thy kingdom shall be established for ever before thee: thy throne shall be established for ever.","2 Samuel"],
+["1 Kings 3:9","Give therefore thy servant an understanding heart to judge thy people, that I may discern between good and bad.","1 Kings"],
+["2 Kings 6:16","Fear not: for they that be with us are more than they that be with them.","2 Kings"],
+["1 Chronicles 16:34","O give thanks unto the LORD; for he is good; for his mercy endureth for ever.","1 Chronicles"],
+["2 Chronicles 7:14","If my people, which are called by my name, shall humble themselves, and pray, and seek my face, and turn from their wicked ways; then will I hear from heaven, and will forgive their sin, and will heal their land.","2 Chronicles"],
+["Ezra 7:10","For Ezra had prepared his heart to seek the law of the LORD, and to do it, and to teach in Israel statutes and judgments.","Ezra"],
+["Nehemiah 8:10","For the joy of the LORD is your strength.","Nehemiah"],
+["Esther 4:14","And who knoweth whether thou art come to the kingdom for such a time as this?","Esther"],
+["Job 19:25","For I know that my redeemer liveth, and that he shall stand at the latter day upon the earth.","Job"],
+["Ecclesiastes 3:1","To every thing there is a season, and a time to every purpose under the heaven.","Ecclesiastes"],
+["Song of Solomon 8:7","Many waters cannot quench love, neither can the floods drown it.","Song of Solomon"],
+["Jeremiah 29:11","For I know the thoughts that I think toward you, saith the LORD, thoughts of peace, and not of evil, to give you an expected end.","Jeremiah"],
+["Lamentations 3:22-23","It is of the LORD'S mercies that we are not consumed, because his compassions fail not. They are new every morning: great is thy faithfulness.","Lamentations"],
+["Ezekiel 36:26","A new heart also will I give you, and a new spirit will I put within you: and I will take away the stony heart out of your flesh, and I will give you an heart of flesh.","Ezekiel"],
+["Daniel 12:3","And they that be wise shall shine as the brightness of the firmament; and they that turn many to righteousness as the stars for ever and ever.","Daniel"],
+["Hosea 6:6","For I desired mercy, and not sacrifice; and the knowledge of God more than burnt offerings.","Hosea"],
+["Joel 2:28","And it shall come to pass afterward, that I will pour out my spirit upon all flesh; and your sons and your daughters shall prophesy, your old men shall dream dreams, your young men shall see visions.","Joel"],
+["Amos 5:24","But let judgment run down as waters, and righteousness as a mighty stream.","Amos"],
+["Obadiah 1:15","For the day of the LORD is near upon all the heathen: as thou hast done, it shall be done unto thee: thy reward shall return upon thine own head.","Obadiah"],
+["Jonah 2:9","I will pay that that I have vowed. Salvation is of the LORD.","Jonah"],
+["Micah 6:8","He hath shewed thee, O man, what is good; and what doth the LORD require of thee, but to do justly, and to love mercy, and to walk humbly with thy God?","Micah"],
+["Nahum 1:7","The LORD is good, a strong hold in the day of trouble; and he knoweth them that trust in him.","Nahum"],
+["Habakkuk 2:4","Behold, his soul which is lifted up is not upright in him: but the just shall live by his faith.","Habakkuk"],
+["Zephaniah 3:17","The LORD thy God in the midst of thee is mighty; he will save, he will rejoice over thee with joy; he will rest in his love, he will joy over thee with singing.","Zephaniah"],
+["Haggai 2:9","The glory of this latter house shall be greater than of the former, saith the LORD of hosts: and in this place will I give peace, saith the LORD of hosts.","Haggai"],
+["Zechariah 4:6","Not by might, nor by power, but by my spirit, saith the LORD of hosts.","Zechariah"],
+["Malachi 4:2","But unto you that fear my name shall the Sun of righteousness arise with healing in his wings; and ye shall go forth, and grow up as calves of the stall.","Malachi"],
+["Matthew 5:16","Let your light so shine before men, that they may see your good works, and glorify your Father which is in heaven.","Matthew"],
+["Mark 10:45","For even the Son of man came not to be ministered unto, but to minister, and to give his life a ransom for many.","Mark"],
+["Luke 2:11","For unto you is born this day in the city of David a Saviour, which is Christ the Lord.","Luke"],
+["Acts 1:8","But ye shall receive power, after that the Holy Ghost is come upon you: and ye shall be witnesses unto me both in Jerusalem, and in all Judaea, and in Samaria, and unto the uttermost part of the earth.","Acts"],
+["1 Corinthians 13:13","And now abideth faith, hope, charity, these three; but the greatest of these is charity.","1 Corinthians"],
+["2 Corinthians 5:17","Therefore if any man be in Christ, he is a new creature: old things are passed away; behold, all things are become new.","2 Corinthians"],
+["Galatians 5:1","Stand fast therefore in the liberty wherewith Christ hath made us free, and be not entangled again with the yoke of bondage.","Galatians"],
+["Ephesians 2:8","For by grace are ye saved through faith; and that not of yourselves: it is the gift of God.","Ephesians"],
+["Colossians 3:23","And whatsoever ye do, do it heartily, as to the Lord, and not unto men.","Colossians"],
+["1 Thessalonians 5:16-18","Rejoice evermore. Pray without ceasing. In every thing give thanks: for this is the will of God in Christ Jesus concerning you.","1 Thessalonians"],
+["2 Thessalonians 3:3","But the Lord is faithful, who shall stablish you, and keep you from evil.","2 Thessalonians"],
+["1 Timothy 4:12","Let no man despise thy youth; but be thou an example of the believers, in word, in conversation, in charity, in spirit, in faith, in purity.","1 Timothy"],
+["2 Timothy 1:7","For God hath not given us the spirit of fear; but of power, and of love, and of a sound mind.","2 Timothy"],
+["Titus 2:11","For the grace of God that bringeth salvation hath appeared to all men.","Titus"],
+["Philemon 1:16","Not now as a servant, but above a servant, a brother beloved, specially to me, but how much more unto thee, both in the flesh, and in the Lord?","Philemon"],
+["Hebrews 11:1","Now faith is the substance of things hoped for, the evidence of things not seen.","Hebrews"],
+["James 1:5","If any of you lack wisdom, let him ask of God, that giveth to all men liberally, and upbraideth not; and it shall be given him.","James"],
+["1 Peter 5:7","Casting all your care upon him; for he careth for you.","1 Peter"],
+["2 Peter 3:18","But grow in grace, and in the knowledge of our Lord and Saviour Jesus Christ. To him be glory both now and for ever. Amen.","2 Peter"],
+["1 John 4:8","He that loveth not knoweth not God; for God is love.","1 John"],
+["2 John 1:6","And this is love, that we walk after his commandments.","2 John"],
+["3 John 1:4","I have no greater joy than to hear that my children walk in truth.","3 John"],
+["Jude 1:24","Now unto him that is able to keep you from falling, and to present you faultless before the presence of his glory with exceeding joy.","Jude"],
+["Revelation 21:4","And God shall wipe away all tears from their eyes; and there shall be no more death, neither sorrow, nor crying, neither shall there be any more pain: for the former things are passed away.","Revelation"]);
+const idx=n=>B.findIndex(b=>b[0]===n);
+const $=s=>document.querySelector(s);
+
+/* ---------- scene ---------- */
+const host=$('#c');
+const R=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+R.setPixelRatio(Math.min(window.devicePixelRatio||1,3));
+R.toneMapping=THREE.ACESFilmicToneMapping;R.toneMappingExposure=1.15;R.outputEncoding=THREE.sRGBEncoding;
+host.appendChild(R.domElement);
+const S=new THREE.Scene();S.background=new THREE.Color(0x05060d);S.fog=new THREE.FogExp2(0x05060d,.007);
+const cam=new THREE.PerspectiveCamera(50,1,.1,600);
+S.add(new THREE.AmbientLight(0x7078a8,.55));
+const core=new THREE.PointLight(0xffd88a,3.2,70,1.4);S.add(core);
+const rim=new THREE.DirectionalLight(0x8aaaff,.7);rim.position.set(10,22,12);S.add(rim);
+
+function glowTex(){const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d'),r=g.createRadialGradient(64,64,0,64,64,64);
+ r.addColorStop(0,'rgba(255,255,255,1)');r.addColorStop(.25,'rgba(255,255,255,.35)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,128,128);return new THREE.CanvasTexture(c)}
+const GT=glowTex();
+function glow(col,size,op){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:GT,color:col,transparent:true,opacity:op,blending:THREE.AdditiveBlending,depthWrite:false}));s.scale.set(size,size,1);return s}
+
+/* stars + nebula */
+{const n=4500,p=new Float32Array(n*3),c=new Float32Array(n*3);
+ for(let i=0;i<n;i++){const r=70+Math.random()*260,a=Math.random()*6.283,b=Math.acos(2*Math.random()-1);
+  p.set([r*Math.sin(b)*Math.cos(a),r*Math.cos(b),r*Math.sin(b)*Math.sin(a)],i*3);
+  const w=Math.random();c.set([.8+.2*w,.8+.1*w,1-.3*w],i*3)}
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(p,3));g.setAttribute('color',new THREE.BufferAttribute(c,3));
+ S.add(new THREE.Points(g,new THREE.PointsMaterial({size:1.3,map:GT,vertexColors:true,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,sizeAttenuation:true})));
+ [[0x3a2a8a,-90,20,-80],[0x1e5a8a,100,-30,-60],[0x8a4a1e,20,60,-120],[0x5a1e6a,-60,-50,90]].forEach(([c,x,y,z])=>{const s=glow(c,190,.22);s.position.set(x,y,z);S.add(s)})}
+
+/* the central light */
+const hub=new THREE.Group();S.add(hub);
+hub.add(new THREE.Mesh(new THREE.SphereGeometry(1.1,64,64),new THREE.MeshBasicMaterial({color:0xfff1c9})));
+hub.add(glow(0xffc65a,11,.9));hub.add(glow(0xffffff,4,.9));
+const rings=[];[[2.4,0],[3.2,1.1],[4,-.8]].forEach(([r,t],i)=>{const m=new THREE.Mesh(new THREE.TorusGeometry(r,.018,16,240),new THREE.MeshBasicMaterial({color:0xe8c26a,transparent:true,opacity:.55}));m.rotation.x=1.2+t;m.rotation.y=t*.6;hub.add(m);rings.push(m)});
+
+/* galaxy of books */
+const gal=new THREE.Group();S.add(gal);
+const meshes=[];
+const pos=i=>{const nt=i>=39,j=nt?i-39:i,a=j*(nt?.62:.42)+(nt?Math.PI:0),r=5+j*(nt?.34:.22);return new THREE.Vector3(Math.sin(a)*r,Math.sin(j*.55)*1.2+(nt?.7:-.7),Math.cos(a)*r)};
+B.forEach((b,i)=>{
+ const col=new THREE.Color(C[b[2]][1]),h=.55+Math.sqrt(b[1])*.2;
+ const geo=new THREE.BoxGeometry(.5,h,.16);
+ const m=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:.55,metalness:.55,roughness:.28}));
+ const e=new THREE.LineSegments(new THREE.EdgesGeometry(geo),new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.4}));
+ const g=glow(col,2.4,.5);
+ m.add(e);m.add(g);m.position.copy(pos(i));m.lookAt(0,m.position.y,0);
+ m.userData={i,y:m.position.y,k:1,e,g,h};gal.add(m);meshes.push(m)});
+{const n=2600,p=new Float32Array(n*3),c=new Float32Array(n*3);
+ for(let i=0;i<n;i++){const nt=i%2,j=Math.random()*(nt?27:39),a=j*(nt?.62:.42)+(nt?Math.PI:0)+(Math.random()-.5)*.9,r=5+j*(nt?.34:.22)+(Math.random()-.5)*2.4;
+  p.set([Math.sin(a)*r,(Math.random()-.5)*2.2,Math.cos(a)*r],i*3);const k=Math.random();c.set([1,.8+.15*k,.5+.5*k],i*3)}
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(p,3));g.setAttribute('color',new THREE.BufferAttribute(c,3));
+ gal.add(new THREE.Points(g,new THREE.PointsMaterial({size:.22,map:GT,vertexColors:true,transparent:true,opacity:.7,depthWrite:false,blending:THREE.AdditiveBlending})))}
+
+/* ---------- camera control ---------- */
+let th=.6,ph=1.2,dist=30,tth=th,tph=ph,td=dist;
+const tg=new THREE.Vector3(),tt=new THREE.Vector3();
+let sel=-1,hov=-1,cat=-1,drag=false,moved=0;
+const ptrs=new Map();let pinch=0;
+const cl=(v,a,b)=>Math.max(a,Math.min(b,v));
+function place(){th+=(tth-th)*.07;ph+=(tph-ph)*.07;dist+=(td-dist)*.07;tg.lerp(tt,.07);
+ cam.position.set(tg.x+dist*Math.sin(ph)*Math.sin(th),tg.y+dist*Math.cos(ph),tg.z+dist*Math.sin(ph)*Math.cos(th));cam.lookAt(tg)}
+const cv=R.domElement;
+cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,[e.clientX,e.clientY]);drag=true;moved=0;cv.classList.add('dr')});
+cv.addEventListener('pointermove',e=>{
+ const p=ptrs.get(e.pointerId);
+ if(p){const dx=e.clientX-p[0],dy=e.clientY-p[1];ptrs.set(e.pointerId,[e.clientX,e.clientY]);moved+=Math.abs(dx)+Math.abs(dy);
+  if(ptrs.size===2){const [a,b]=[...ptrs.values()],d=Math.hypot(a[0]-b[0],a[1]-b[1]);if(pinch)td=cl(td*pinch/d,7,70);pinch=d}
+  else{tth-=dx*.006;tph=cl(tph-dy*.006,.25,2.9)}}
+ else hover(e)});
+const up=e=>{ptrs.delete(e.pointerId);pinch=0;if(!ptrs.size){drag=false;cv.classList.remove('dr')}};
+cv.addEventListener('pointerup',e=>{if(moved<6&&ptrs.size===1){const i=hit(e);select(i)}up(e)});
+cv.addEventListener('pointercancel',up);
+cv.addEventListener('wheel',e=>{e.preventDefault();td=cl(td*(1+e.deltaY*.0012),7,70)},{passive:false});
+
+const ray=new THREE.Raycaster(),mv=new THREE.Vector2();
+function hit(e){const r=cv.getBoundingClientRect();mv.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(mv,cam);
+ const h=ray.intersectObjects(meshes,false).filter(o=>cat<0||B[o.object.userData.i][2]===cat)[0];return h?h.object.userData.i:-1}
+function hover(e){hov=hit(e);const t=$('#tip');
+ if(hov>=0){t.textContent=B[hov][0];t.style.left=e.clientX+14+'px';t.style.top=e.clientY+14+'px';t.style.opacity=1}else t.style.opacity=0}
+
+/* ---------- UI ---------- */
+const chips=$('#chips');
+function chip(label,col,v){const b=document.createElement('button');b.className='chip';b.innerHTML=(col?`<i style="background:${col};color:${col}"></i>`:'')+label;b.onclick=()=>{cat=cat===v?-1:v;paint()};b.dataset.v=v;chips.appendChild(b)}
+chip('All books','',-1);C.forEach((c,i)=>chip(c[0],c[1],i));
+function paint(){chips.querySelectorAll('.chip').forEach(b=>b.classList.toggle('on',+b.dataset.v===cat))}
+paint();
+$('#bl').innerHTML=B.map(b=>`<option value="${b[0]}">`).join('');
+$('#q').addEventListener('change',e=>{const v=e.target.value.trim().toLowerCase(),i=B.findIndex(b=>b[0].toLowerCase()===v)>=0?B.findIndex(b=>b[0].toLowerCase()===v):B.findIndex(b=>b[0].toLowerCase().includes(v));if(i>=0){select(i);e.target.blur()}});
+
+function select(i){
+ sel=i;
+ if(i<0){tt.set(0,0,0);td=30;tph=1.2;$('#intro').hidden=false;$('#bk').hidden=true;return}
+ const b=B[i],c=C[b[2]];
+ cat=cat>=0&&cat!==b[2]?-1:cat;paint();
+ $('#intro').hidden=true;$('#bk').hidden=false;
+ $('#bm').textContent=c[2]+', '+c[0];$('#bn').textContent=b[0];$('#bt').textContent=b[3];
+ $('#bc').textContent=b[1]+(b[1]===1?' chapter':' chapters')+', book '+(i+1)+' of 66';
+ const bb=$('#bb');bb.style.background=c[1];bb.style.width=Math.max(3,b[1]/150*100)+'%';
+ $('#bq').innerHTML=V.filter(x=>x[2]===b[0]).map(v=>`<p class="q">${v[1]}<br><span class="k">${v[0]}, King James Version</span></p>`).join('');
+ const w=new THREE.Vector3();meshes[i].getWorldPosition(w);tt.copy(w);td=10;tph=1.3;
+ const a=Math.atan2(w.x,w.z);tth=th+(((a-th+Math.PI)%(2*Math.PI))+2*Math.PI)%(2*Math.PI)-Math.PI}
+$('#x').onclick=()=>select(-1);
+$('#pv').onclick=()=>select((sel+65)%66);$('#nx').onclick=()=>select((sel+1)%66);
+addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;
+ if(e.key==='Escape')select(-1);
+ if(e.key==='ArrowRight')select(sel<0?0:(sel+1)%66);
+ if(e.key==='ArrowLeft')select(sel<0?65:(sel+65)%66)});
+
+let vi=0;const vb=$('#verse');
+function showVerse(){const v=V[vi%V.length];vb.style.opacity=0;setTimeout(()=>{vb.innerHTML=`<em>${v[1]}</em><small>${v[0]}, King James Version</small>`;vb.dataset.b=v[2];vb.style.opacity=1},450);vi++}
+vb.onclick=()=>select(idx(vb.dataset.b));
+showVerse();setInterval(showVerse,10000);
+
+/* ---------- loop ---------- */
+function size(){const w=host.clientWidth,h=host.clientHeight;R.setSize(w,h,false);cv.style.width=w+'px';cv.style.height=h+'px';cam.aspect=w/h;cam.updateProjectionMatrix();
+ if(w<720&&sel<0){td=Math.max(td,40)}}
+new ResizeObserver(size).observe(host);size();
+const clk=new THREE.Clock();
+function loop(){requestAnimationFrame(loop);const t=clk.getElapsedTime();
+ if(sel<0&&!drag){gal.rotation.y+=.0014;tth+=.0006}
+ meshes.forEach(m=>{const u=m.userData,on=cat<0||B[u.i][2]===cat,tk=on?1:.12;u.k+=(tk-u.k)*.08;
+  const bump=(hov===u.i?.28:0)+(sel===u.i?.35:0);
+  m.scale.setScalar(.72+.28*u.k+bump);m.position.y=u.y+Math.sin(t*.8+u.i)*.09;
+  m.material.emissiveIntensity=.08+u.k*.5+bump*1.4;u.g.material.opacity=u.k*.5+bump;u.e.material.opacity=.08+u.k*.35});
+ rings.forEach((r,i)=>{r.rotation.z+=.003*(i+1)});
+ hub.scale.setScalar(1+Math.sin(t*1.6)*.025);
+ place();R.render(S,cam)}
+loop();
+</script>
+</body>
+</html>
